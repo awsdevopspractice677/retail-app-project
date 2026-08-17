@@ -1,0 +1,19 @@
+# Maven build output — regenerated fresh inside the build stage anyway
+target/
+
+# Git metadata — never needed inside a build
+.git/
+.gitignore
+
+# Docs — irrelevant to the build
+*.md
+
+# Kubernetes manifests and Jenkinsfile — not used by `docker build`
+k8s/
+Jenkinsfile
+
+# IDE and OS clutter
+.idea/
+*.iml
+.vscode/
+.DS_Store
