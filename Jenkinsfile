@@ -47,15 +47,17 @@ pipeline {
 }
 
         stage('Trivy Filesystem Scan') {
-            steps {
-                sh '''
-                    trivy fs \
-                    --severity HIGH,CRITICAL \
-                    --exit-code 0 \
-                    --no-progress .
-                '''
-            }
-        }
+    steps {
+        sh '''
+            mkdir -p trivy-tmp
+            export TMPDIR=$(pwd)/trivy-tmp
+            trivy fs \
+            --severity HIGH,CRITICAL \
+            --exit-code 0 \
+            --no-progress .
+        '''
+    }
+}
 
         stage('Docker Build') {
             steps {
