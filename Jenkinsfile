@@ -32,19 +32,19 @@ pipeline {
         }
 
         stage('SonarQube Scan') {
-            steps {
-                withSonarQubeEnv('sonarQube') {
-                    withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
-                        sh '''
-                            mvn sonar:sonar \
-                            -Dsonar.projectKey=retail-app \
-                            -Dsonar.projectName=retail-app \
-                            -Dsonar.token=${SONAR_TOKEN}
-                        '''
-                    }
-                }
+    steps {
+        withSonarQubeEnv('sonarQube') {
+            withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+                sh '''
+                    mvn org.sonarsource.scanner.maven:sonar-maven-plugin:3.10.0.2594:sonar \
+                    -Dsonar.projectKey=retail-app \
+                    -Dsonar.projectName=retail-app \
+                    -Dsonar.token=${SONAR_TOKEN}
+                '''
             }
         }
+    }
+}
 
         stage('Trivy Filesystem Scan') {
             steps {
