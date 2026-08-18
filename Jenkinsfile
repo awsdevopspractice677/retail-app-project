@@ -66,16 +66,18 @@ pipeline {
         }
 
         stage('Docker Image Trivy Scan') {
-            steps {
-                sh '''
-                    trivy image \
-                    --severity HIGH,CRITICAL \
-                    --exit-code 0 \
-                    --no-progress \
-                    ${IMAGE_NAME}:${IMAGE_TAG}
-                '''
-            }
-        }
+    steps {
+        sh '''
+            mkdir -p /home/ubuntu/trivy-tmp
+            export TMPDIR=/home/ubuntu/trivy-tmp
+            trivy image \
+            --severity HIGH,CRITICAL \
+            --exit-code 0 \
+            --no-progress \
+            ${IMAGE_NAME}:${IMAGE_TAG}
+        '''
+    }
+}
 
         stage('Push to ECR') {
             steps {
