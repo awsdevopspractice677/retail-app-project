@@ -1,6 +1,5 @@
 pipeline {
     agent any
-
     environment {
         AWS_REGION      = 'ap-south-1'
         AWS_ACCOUNT_ID  = '589833671856'
@@ -9,56 +8,49 @@ pipeline {
         IMAGE_TAG       = "${env.BUILD_NUMBER}"
         ECR_URI         = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}"
     }
-
     stages {
-
         stage('Checkout') {
             steps {
                 git branch: 'master',
                     url: 'https://github.com/awsdevopspractice677/retail-app-project.git'
             }
         }
-
         stage('Build') {
             steps {
                 sh 'mvn clean package -DskipTests'
             }
         }
-
         stage('Test') {
             steps {
                 sh 'mvn test'
             }
         }
-
         stage('SonarQube Scan') {
-    steps {
-        withSonarQubeEnv('sonarQube') {
-            withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+            steps {
+                withSonarQubeEnv('sonarQube') {
+                    withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+                        sh '''
+                            mvn org.sonarsource.scanner.maven:sonar-maven-plugin:3.10.0.2594:sonar \
+                            -Dsonar.projectKey=retail-app \
+                            -Dsonar.projectName=retail-app \
+                            -Dsonar.token=${SONAR_TOKEN}
+                        '''
+                    }
+                }
+            }
+        }
+        stage('Trivy Filesystem Scan') {
+            steps {
                 sh '''
-                    mvn org.sonarsource.scanner.maven:sonar-maven-plugin:3.10.0.2594:sonar \
-                    -Dsonar.projectKey=retail-app \
-                    -Dsonar.projectName=retail-app \
-                    -Dsonar.token=${SONAR_TOKEN}
+                    mkdir -p trivy-tmp
+                    export TMPDIR=$(pwd)/trivy-tmp
+                    trivy fs \
+                    --severity HIGH,CRITICAL \
+                    --exit-code 0 \
+                    --no-progress .
                 '''
             }
         }
-    }
-}
-
-        stage('Trivy Filesystem Scan') {
-    steps {
-        sh '''
-            mkdir -p trivy-tmp
-            export TMPDIR=$(pwd)/trivy-tmp
-            trivy fs \
-            --severity HIGH,CRITICAL \
-            --exit-code 0 \
-            --no-progress .
-        '''
-    }
-}
-
         stage('Docker Build') {
             steps {
                 sh '''
@@ -66,28 +58,25 @@ pipeline {
                 '''
             }
         }
-
         stage('Docker Image Trivy Scan') {
-    steps {
-        sh '''
-            mkdir -p /home/ubuntu/trivy-tmp
-            export TMPDIR=/home/ubuntu/trivy-tmp
-            trivy image \
-            --severity HIGH,CRITICAL \
-            --exit-code 0 \
-            --no-progress \
-            ${IMAGE_NAME}:${IMAGE_TAG}
-        '''
-    }
-}
-
+            steps {
+                sh '''
+                    mkdir -p trivy-tmp
+                    export TMPDIR=$(pwd)/trivy-tmp
+                    trivy image \
+                    --severity HIGH,CRITICAL \
+                    --exit-code 0 \
+                    --no-progress \
+                    ${IMAGE_NAME}:${IMAGE_TAG}
+                '''
+            }
+        }
         stage('Push to ECR') {
             steps {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-jenkins-creds']]) {
                     sh '''
                         aws ecr get-login-password --region ${AWS_REGION} | \
                         docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
-
                         docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${ECR_URI}:${IMAGE_TAG}
                         docker push ${ECR_URI}:${IMAGE_TAG}
                     '''
@@ -95,7 +84,6 @@ pipeline {
             }
         }
     }
-
     post {
         success {
             echo 'Build, scan, and push completed successfully!'
