@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Retail App</title>
+<style>
+  body { font-family: Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 20px; }
+  h1 { text-align: center; color: #333; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; max-width: 1100px; margin: 30px auto; }
+  .card { background: #fff; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); overflow: hidden; }
+  .card img { width: 100%; height: 160px; object-fit: cover; }
+  .card-body { padding: 14px; }
+  .card-body h3 { margin: 0 0 6px; font-size: 16px; }
+  .price { color: #2e7d32; font-weight: bold; }
+  .badge { display: inline-block; font-size: 11px; background: #eee; padding: 2px 8px; border-radius: 10px; margin-bottom: 6px; }
+  .restricted { background: #ffe0e0; color: #c00; }
+</style>
+</head>
+<body>
+<h1>Retail Catalog</h1>
+<div class="grid" id="grid"></div>
+
+<script>
+const categoryImages = {
+  VEGETABLES: "https://picsum.photos/seed/veg/300/200",
+  CLOTHES: "https://picsum.photos/seed/clothes/300/200",
+  ELECTRONICS: "https://picsum.photos/seed/electronics/300/200",
+  ALCOHOL: "https://picsum.photos/seed/alcohol/300/200"
+};
+
+fetch('/api/v1/products')
+  .then(res => res.json())
+  .then(products => {
+    const grid = document.getElementById('grid');
+    products.forEach(p => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <img src="${categoryImages[p.category] || 'https://picsum.photos/300/200'}" alt="${p.name}">
+        <div class="card-body">
+          <span class="badge ${p.ageRestricted ? 'restricted' : ''}">${p.category}${p.ageRestricted ? ' · 18+' : ''}</span>
+          <h3>${p.name}</h3>
+          <div class="price">₹${p.price.toFixed(2)} / ${p.unit}</div>
+          <div>Stock: ${p.stockQuantity}</div>
+        </div>`;
+      grid.appendChild(card);
+    });
+  })
+  .catch(err => {
+    document.getElementById('grid').innerHTML = '<p>Failed to load products.</p>';
+    console.error(err);
+  });
+</script>
+</body>
+</html>
